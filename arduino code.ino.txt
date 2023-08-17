@@ -1,0 +1,157 @@
+#define BLYNK_TEMPLATE_ID "TMPLtmAnHRmS"
+#define BLYNK_DEVICE_NAME "Air Pollution"
+#define BLYNK_AUTH_TOKEN "w-plv1ofHKloV_Xu4rKxy6aPi8Pj1wQi"
+
+#define BLYNK_PRINT Serial
+
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <WiFiUdp.h>
+#include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "Pixel_2336";
+char pass[] = "Varma1808";
+
+BlynkTimer timer;
+
+#define WIFI_SSID "Pixel_2336"
+#define WIFI_PASSWORD "Varma1808"
+#define ANALOG_INPUT A0
+#define MUX_A D0
+int data1=0;
+int data2=0;
+float m = -0.3376;
+float b = 0.7165;
+float R0 = 3.12;
+
+WiFiClient client;
+WiFiUDP ntpUDP;
+String thingSpeakAddress= "http://api.thingspeak.com/update?";
+String writeAPIKey;
+String tsfield1Name;
+String request_string;
+HTTPClient http;
+
+void changeMux(int a) {
+  digitalWrite(MUX_A, a);
+}
+
+
+void setup()
+{
+  // Debug console
+  Serial.begin(115200);
+  Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+  // Setup a function to be called every second
+  timer.setInterval(1000L, getSendData);
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+  }
+
+  pinMode(MUX_A, OUTPUT);
+}
+
+void loop()
+{
+  Blynk.run();
+  timer.run(); // Initiates BlynkTimer
+
+int sensorValue0;
+changeMux(LOW);
+//   int sensorValue = analogRead(A0);
+//   float sensor_volt;
+//   float RS_gas; 
+//   float ratio;
+//   sensor_volt = sensorValue*(5.0/1023.0);
+//   RS_gas = ((5.0*10.0)/sensor_volt)-10.0;
+//   ratio = RS_gas/R0;
+//   float ppm_log = (log10(ratio)-b)/m;
+//   float ppm = pow(10, ppm_log);
+ int val1=analogRead(A0);
+  delay(100);
+  int val2=analogRead(A0);
+  delay(100);
+  int val3=analogRead(A0);
+  delay(100);
+  int val4=analogRead(A0);
+  delay(100);
+  int val5=analogRead(A0);
+  delay(100);
+  int val6=analogRead(A0);
+  sensorValue0 = ((val1+val2+val3+val4+val5+val6)/6);
+  
+  changeMux(HIGH);
+  int sensorValue1;
+  int val7=analogRead(A0);
+  delay(100);
+  int val8=analogRead(A0);
+  delay(100);
+  int val9=analogRead(A0);
+  delay(100);
+  int val10=analogRead(A0);
+  delay(100);
+  int val11=analogRead(A0);
+  delay(100);
+  int val12=analogRead(A0);
+  sensorValue1 = ((val7+val8+val9+val10+val11+val12)/6);
+
+
+  if (client.connect("api.thingspeak.com",80)) {
+      request_string = thingSpeakAddress;
+      request_string += "key=";
+      request_string += "7VYI0L4903X7JZIV";
+      request_string += "&";
+      request_string += "field1";
+      request_string += "=";
+      request_string += sensorValue0;
+      request_string += "&";
+      request_string += "field2";
+      request_string += "=";
+      request_string +=sensorValue1;
+      http.begin(client,request_string);
+      http.GET();
+      http.end();
+  }
+  delay(1000);
+}
+
+void getSendData()
+
+{
+  
+  changeMux(LOW);
+
+  int sensorValue0;
+  changeMux(LOW);
+  int sensorValue = analogRead(A0);
+  float sensor_volt;
+  float RS_gas; 
+  float ratio;
+  sensor_volt = sensorValue*(5.0/1023.0);
+  RS_gas = ((5.0*10.0)/sensor_volt)-10.0;
+  ratio = RS_gas/R0;
+  float ppm_log = (log10(ratio)-b)/m;
+  float ppm = pow(10, ppm_log);
+  data1=ppm;
+
+  changeMux(HIGH);
+  int val1=analogRead(A0);
+  delay(100);
+  int val2=analogRead(A0);
+  delay(100);
+  int val3=analogRead(A0);
+  delay(100);
+  int val4=analogRead(A0);
+  delay(100);
+  int val5=analogRead(A0);
+  delay(100);
+  int val6=analogRead(A0);
+  data2 = ((val1+val2+val3+val4+val5+val6)/6);
+
+  Blynk.virtualWrite(V1, data1); //virtual pin V1
+  Blynk.virtualWrite(V2, data2); //virtual pin V1
+}
